@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="hi" class="scroll-smooth">
+<html lang="hi">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Anand Canteen • Order Now</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
@@ -13,71 +13,100 @@
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
   
   <style>
-    body { background: #0f0f0f; color: #e5e5e5; font-family: system-ui, sans-serif; }
-    .card { background: #1a1a1a; border: 1px solid #333; border-radius: 16px; overflow: hidden; transition: all 0.25s ease; }
-    .card:hover { transform: translateY(-8px); box-shadow: 0 20px 35px -10px rgba(249, 115, 22, 0.25); border-color: #f97316; }
-    .badge { position: absolute; top: 12px; right: 12px; padding: 4px 10px; font-size: 0.75rem; font-weight: 600; border-radius: 9999px; }
-    .veg { background: #22c55e; color: #000; }
-    .nonveg { background: #ef4444; color: white; }
-    input:focus { outline: none; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.4); }
-    .modal-bg { background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); }
+    body { background: #0f0f0f; color: #e5e5e5; font-family: system-ui, sans-serif; margin: 0; padding: 20px; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    h1 { text-align: center; color: #f97316; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .card {
+      background: #1a1a1a;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      transition: transform 0.3s;
+      position: relative;
+    }
+    .card:hover { transform: translateY(-8px); }
+    .card img { width: 100%; height: 200px; object-fit: cover; }
+    .content { padding: 15px; }
+    .title { font-size: 1.3rem; font-weight: bold; margin-bottom: 8px; }
+    .price { font-size: 1.2rem; color: #f97316; margin-bottom: 8px; }
+    .desc { font-size: 0.95rem; color: #bbb; margin-bottom: 12px; }
+    .btn {
+      background: #f97316;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      width: 100%;
+    }
+    .btn:hover { background: #ea580c; }
+    .veg { background: #22c55e; color: black; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; position: absolute; top: 10px; right: 10px; }
+    .nonveg { background: #ef4444; color: white; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; position: absolute; top: 10px; right: 10px; }
+    #cart-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-content {
+      background: #222;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .filter-btn.active { background: #f97316 !important; color: black !important; border-color: #f97316 !important; }
   </style>
 </head>
-<body class="min-h-screen pb-24">
+<body>
 
-  <!-- Header -->
-  <header class="sticky top-0 z-50 bg-black/90 backdrop-blur-md border-b border-gray-800">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-      <h1 class="text-2xl md:text-3xl font-bold text-orange-500">Anand Canteen</h1>
-      <div class="text-sm text-gray-400">
-        Table <span id="table" class="text-orange-400 font-bold"></span>
-      </div>
+  <div class="container">
+    <h1>Anand Canteen</h1>
+
+    <!-- Filters -->
+    <div class="flex flex-wrap gap-3 mb-6 justify-center">
+      <button class="filter-btn px-6 py-2 bg-gray-800 border border-gray-700 rounded-full text-sm font-medium transition-all active:scale-95 active" data-filter="all">All</button>
+      <button class="filter-btn px-6 py-2 bg-gray-800 border border-gray-700 rounded-full text-sm font-medium transition-all active:scale-95" data-filter="veg">Veg Only</button>
+      <button class="filter-btn px-6 py-2 bg-gray-800 border border-gray-700 rounded-full text-sm font-medium transition-all active:scale-95" data-filter="nonveg">Non-Veg</button>
     </div>
-  </header>
 
-  <!-- Search + Filters -->
-  <div class="max-w-7xl mx-auto px-4 pt-6 pb-4">
-    <input id="search" type="text" placeholder="Dish dhundho (e.g. Misal Pav)..." class="w-full p-4 bg-gray-900 border border-gray-700 rounded-2xl text-white placeholder-gray-500 focus:border-orange-500 transition" oninput="filterMenu()"/>
-    <div class="flex flex-wrap gap-3 mt-5 justify-center md:justify-start">
-      <button class="filter-btn px-6 py-2.5 bg-gray-800 hover:bg-orange-600/30 border border-gray-700 hover:border-orange-500 rounded-full text-sm font-medium transition-all active:scale-95" data-filter="all">All</button>
-      <button class="filter-btn px-6 py-2.5 bg-green-900/40 hover:bg-green-800/60 border border-green-700/50 hover:border-green-500 rounded-full text-sm font-medium transition-all active:scale-95" data-filter="veg">Veg Only</button>
-      <button class="filter-btn px-6 py-2.5 bg-red-900/40 hover:bg-red-800/60 border border-red-700/50 hover:border-red-500 rounded-full text-sm font-medium transition-all active:scale-95" data-filter="nonveg">Non-Veg</button>
-    </div>
-  </div>
+    <div class="grid" id="menu-grid"></div>
 
-  <!-- Menu Grid -->
-  <main class="max-w-7xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-5 pb-32"></main>
+    <!-- Floating Cart Button -->
+    <button onclick="openCart()" class="fixed bottom-6 right-6 bg-orange-600 text-white p-5 rounded-full shadow-2xl z-50">
+      <i class="fas fa-shopping-cart text-2xl"></i>
+      <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center">0</span>
+    </button>
 
-  <!-- Floating Cart Button -->
-  <button id="open-cart" class="fixed bottom-6 right-6 bg-orange-600 hover:bg-orange-500 text-white p-5 rounded-full shadow-2xl shadow-orange-900/40 z-50 transition transform hover:scale-110 active:scale-95">
-    <i class="fas fa-shopping-cart text-2xl"></i>
-    <span id="cart-count" class="absolute -top-2 -right-2 bg-red-600 text-white text-xs font-bold rounded-full w-7 h-7 flex items-center justify-center border-2 border-black">0</span>
-  </button>
-
-  <!-- Cart Modal -->
-  <div id="cart-modal" class="hidden fixed inset-0 modal-bg z-50 flex items-center justify-center p-4">
-    <div class="bg-gray-900 rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto border border-gray-700">
-      <div class="sticky top-0 bg-gray-900 p-6 border-b border-gray-800 flex justify-between items-center">
-        <h3 class="text-2xl font-bold text-orange-400">Your Cart • Table <span id="modal-table"></span></h3>
-        <button id="close-cart" class="text-4xl text-gray-400 hover:text-white">×</button>
-      </div>
-      
-      <div id="cart-items" class="p-6 space-y-6"></div>
-      
-      <div class="p-6 border-t border-gray-800">
+    <!-- Cart Modal -->
+    <div id="cart-modal">
+      <div class="modal-content">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-2xl font-bold text-orange-400">Your Cart • Table <span id="modal-table"></span></h2>
+          <button onclick="closeCart()" class="text-3xl text-gray-400 hover:text-white">×</button>
+        </div>
+        <div id="cart-items" class="mb-6"></div>
         <div class="flex justify-between text-xl font-bold mb-4">
           <span>Total:</span>
           <span id="total-price">₹0</span>
         </div>
-        <input id="phone" type="tel" placeholder="Phone number (loyalty ke liye)" class="w-full p-4 bg-gray-800 border border-gray-700 rounded-2xl mb-6 text-white"/>
+        <input id="phone" type="tel" placeholder="Phone number (optional)" class="w-full p-3 bg-gray-800 border border-gray-700 rounded mb-4 text-white">
         
-        <!-- UPI QR Section (visible rakha) -->
+        <!-- UPI QR Section -->
         <div class="text-center mb-6">
           <h4 class="text-xl font-bold text-green-400 mb-3">UPI Se Payment Karo</h4>
           <p class="text-gray-300 mb-4">PhonePe, Google Pay ya kisi bhi app se scan karo</p>
           
           <img 
-            src="upi-qr.jpeg" 
+            src="images/upi-qr.jpeg" 
             alt="UPI QR Code" 
             class="mx-auto w-64 h-64 object-contain border-4 border-green-600 rounded-xl shadow-2xl mb-4"
             onerror="this.src='https://via.placeholder.com/300x300/1a1a1a/ffffff?text=UPI+QR';"
@@ -86,20 +115,15 @@
           <p class="text-lg font-semibold text-orange-400">
             Amount: ₹<span id="total-price-qr">0</span>
           </p>
-          <p class="text-sm text-gray-400 mt-2">
-            Scan kar ke amount daal do aur pay kar do. Payment hone ke baad niche confirm kar do.
-          </p>
         </div>
 
-        <button id="pay-now" class="w-full bg-green-600 hover:bg-green-500 py-5 rounded-2xl text-xl font-bold transition">
-          Pay & Place Order
-        </button>
+        <button onclick="payNow()" class="btn text-lg">Pay & Place Order</button>
       </div>
     </div>
   </div>
 
   <script>
-    // Firebase setup
+    // Firebase Setup
     const firebaseConfig = {
       apiKey: "AIzaSyCOKzlZPt697OU0ZsPF71oQnFgujj408Sw",
       authDomain: "anand-canteen-qr-advanced.firebaseapp.com",
@@ -110,78 +134,46 @@
       appId: "1:332035287761:web:6714c3639d0420abc0f3f0",
       measurementId: "G-EMX68TT0G0"
     };
-
-    let db;
-    try {
-      firebase.initializeApp(firebaseConfig);
-      db = firebase.database();
-      console.log("Firebase connected");
-    } catch (e) {
-      console.error("Firebase failed:", e);
-    }
-
-    const TABLE = new URLSearchParams(location.search).get('table') || '—';
-    document.getElementById('table').textContent = TABLE;
-    document.getElementById('modal-table').textContent = TABLE;
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
 
     let cart = [];
 
+    // Sirf tere 8 items
     const menu = [
-      { name: "Poha Special", price: 45, veg: true, desc: "Onion, sev, peanuts" },
-      { name: "Misal Pav", price: 65, veg: true, desc: "Spicy usal with pav & farsan" },
-      { name: "Vada Pav Combo", price: 50, veg: true, desc: "Classic Mumbai style" },
-      { name: "Chicken Biryani", price: 180, veg: false, desc: "Spicy & aromatic" },
-      { name: "Paneer Tikka", price: 120, veg: true, desc: "Grilled cottage cheese cubes" },
-      { name: "Dal Tadka", price: 90, veg: true, desc: "Yellow lentils with spices" },
-      { name: "Butter Chicken", price: 220, veg: false, desc: "Creamy tomato-based curry" },
-      { name: "Gulab Jamun", price: 60, veg: true, desc: "Sweet milk dumplings" },
-      { name: "Masala Dosa", price: 80, veg: true, desc: "Crispy with potato filling" },
-      { name: "Chole Bhature", price: 90, veg: true, desc: "Spicy chickpeas with fried bread" },
-      { name: "Samosa", price: 30, veg: true, desc: "Crispy potato filled pastry" },
-      { name: "Dal Makhani", price: 110, veg: true, desc: "Creamy black lentils" },
-      { name: "Mutton Rogan Josh", price: 250, veg: false, desc: "Aromatic Kashmiri curry" },
-      { name: "Aloo Paratha", price: 70, veg: true, desc: "Stuffed potato flatbread" },
-      { name: "Chicken Tikka", price: 150, veg: false, desc: "Grilled marinated chicken" },
-      { name: "Tea / Chai", price: 12, veg: true, desc: "Masala chai" },
-      { name: "Cold Coffee", price: 60, veg: true, desc: "Creamy & chilled" },
-      { name: "Lassi", price: 50, veg: true, desc: "Traditional yogurt drink" },
-      { name: "Egg Bhurji Pav", price: 70, veg: false, desc: "Spicy scrambled eggs with pav" }
+      { name: "Anda Kari", price: 80, veg: false, desc: "Spicy egg curry", img: "images/anda kari.jpg" },
+      { name: "Chicken", price: 150, veg: false, desc: "Fresh chicken curry", img: "images/chicken.jpg" },
+      { name: "Biryani", price: 180, veg: false, desc: "Aromatic chicken biryani", img: "images/biryani.jpg" },
+      { name: "Paneer Tikka", price: 120, veg: true, desc: "Grilled paneer with spices", img: "images/paneer tickka.jpg" },
+      { name: "Gulab Jamun", price: 60, veg: true, desc: "Sweet milk dumplings", img: "images/gulabjamun.jpg" },
+      { name: "Chai", price: 12, veg: true, desc: "Hot masala chai", img: "images/chai.jpg" },
+      { name: "Misal Pav", price: 65, veg: true, desc: "Spicy misal with pav", img: "images/misal pav.jpg" },
+      { name: "Poha", price: 45, veg: true, desc: "Onion, sev, peanuts poha", img: "images/poha.jpg" }
     ];
 
     function renderMenu(filtered = menu) {
-      const main = document.querySelector('main');
-      if (!main) return console.error("Main tag nahi mila");
-
-      main.innerHTML = filtered.map(item => `
+      const grid = document.getElementById('menu-grid');
+      grid.innerHTML = filtered.map(item => `
         <div class="card relative">
-          <div class="w-full h-48 bg-gray-700 flex items-center justify-center text-gray-400 text-lg font-bold">
-            ${item.name}
-          </div>
-          <span class="badge ${item.veg ? 'veg' : 'nonveg'}">${item.veg ? 'Veg' : 'Non-Veg'}</span>
-          <div class="p-4">
-            <h3 class="font-bold text-lg mb-1">${item.name}</h3>
-            <p class="text-gray-400 text-sm mb-3">${item.desc}</p>
-            <div class="flex justify-between items-center">
-              <span class="text-xl font-bold text-orange-400">₹${item.price}</span>
-              <button onclick="addToCart('${item.name.replace(/'/g, "\\'")}', ${item.price}, ${item.veg}, '${item.desc.replace(/'/g, "\\'")}', '')" 
-                      class="bg-orange-600 hover:bg-orange-500 px-5 py-2 rounded-lg text-sm font-medium transition">
-                Add to Cart
-              </button>
-            </div>
+          <span class="${item.veg ? 'veg' : 'nonveg'}">${item.veg ? 'Veg' : 'Non-Veg'}</span>
+          <img src="${item.img}" alt="${item.name}" onerror="this.src='https://via.placeholder.com/300x200?text=No+Image';">
+          <div class="content">
+            <div class="title">${item.name}</div>
+            <div class="price">₹${item.price}</div>
+            <div class="desc">${item.desc}</div>
+            <button class="btn" onclick="addToCart('${item.name.replace(/'/g, "\\'")}', ${item.price}, ${item.veg}, '${item.desc.replace(/'/g, "\\'")}', '${item.img.replace(/'/g, "\\'")}')">Add to Cart</button>
           </div>
         </div>
       `).join('');
-
-      console.log("Menu render complete:", filtered.length, "items");
     }
 
     function addToCart(name, price, veg, desc, img) {
       cart.push({name, price, veg, desc, img});
       document.getElementById('cart-count').textContent = cart.length;
-      alert(`${name} cart me add ho gaya!`);
+      alert(name + " cart me add ho gaya!");
     }
 
-    document.getElementById('open-cart').onclick = () => {
+    function openCart() {
       const modal = document.getElementById('cart-modal');
       const itemsDiv = document.getElementById('cart-items');
       let total = 0;
@@ -190,88 +182,79 @@
       cart.forEach((item, i) => {
         total += item.price;
         html += `
-          <div class="flex justify-between items-center border-b border-gray-800 pb-4">
+          <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
             <div>
-              <p class="font-semibold">${item.name}</p>
-              <p class="text-sm text-gray-500">${item.desc}</p>
+              <p class="font-bold">${item.name}</p>
+              <p class="text-sm text-gray-400">${item.desc}</p>
             </div>
             <div class="text-right">
               <p class="font-bold text-orange-400">₹${item.price}</p>
-              <button onclick="removeItem(${i})" class="text-red-500 text-sm mt-1">Remove</button>
+              <button onclick="removeItem(${i})" class="text-red-500 text-sm">Remove</button>
             </div>
           </div>
         `;
       });
 
-      itemsDiv.innerHTML = html || '<p class="text-center text-gray-500 py-10">Cart khali hai</p>';
-      document.getElementById('total-price').textContent = `₹${total}`;
-      document.getElementById('total-price-qr').textContent = total; // QR amount update
-      modal.classList.remove('hidden');
-    };
+      itemsDiv.innerHTML = html || '<p class="text-center text-gray-400">Cart khali hai</p>';
+      document.getElementById('total-price').textContent = total;
+      document.getElementById('total-price-qr').textContent = total;
+      modal.style.display = 'flex';
+    }
 
-    window.removeItem = (index) => {
+    function closeCart() {
+      document.getElementById('cart-modal').style.display = 'none';
+    }
+
+    function removeItem(index) {
       cart.splice(index, 1);
-      document.getElementById('open-cart').click();
+      openCart();
       document.getElementById('cart-count').textContent = cart.length;
-    };
+    }
 
-    document.getElementById('close-cart').onclick = () => {
-      document.getElementById('cart-modal').classList.add('hidden');
-    };
-
-    // Pay Now - Direct UPI deep link
-    document.getElementById('pay-now').onclick = () => {
+    function payNow() {
       if (cart.length === 0) return alert("Cart khali hai!");
 
       const total = cart.reduce((sum, item) => sum + item.price, 0);
       const phone = document.getElementById('phone').value || "guest";
 
-      // TERA REAL UPI ID YAHAN DAAL (PhonePe app se check kar: Profile > UPI ID)
-      const upiId = "8999540672@ybl";  // ← APNA REAL UPI ID DAAL DE (jaise 8999540670@oksbi ya @phonepe)
+      // TERA REAL UPI ID YAHAN DAAL
+      const upiId = "8999540672@ybl";  // ← APNA UPI ID DAAL DE
 
       const name = "Anand Canteen";
-      const note = `Table ${TABLE} Order - Ph: ${phone}`;
+      const note = `Table Order - Ph: ${phone}`;
 
       const upiLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(name)}&am=${total}&cu=INR&tn=${encodeURIComponent(note)}`;
 
-      // Direct UPI app khol
       window.location.href = upiLink;
 
-      // Payment ke baad confirm popup
       setTimeout(() => {
         if (confirm("Payment ho gaya? Order confirm karo!")) {
           const orderId = 'order_' + Date.now();
 
-          if (db) {
-            db.ref('orders/' + orderId).set({
-              table: TABLE,
-              items: cart,
-              total: total,
-              phone,
-              status: "paid_upi",
-              timestamp: Date.now(),
-              paymentMethod: "UPI_DeepLink"
-            }).catch(err => console.error("Firebase save error:", err));
-          }
+          db.ref('orders/' + orderId).set({
+            table: "—",
+            items: cart,
+            total: total,
+            phone,
+            status: "paid_upi",
+            timestamp: Date.now(),
+            paymentMethod: "UPI_Scan"
+          }).catch(err => console.error("Firebase error:", err));
 
           alert("Order confirm ho gaya! Kitchen mein ja raha hai. Thank you! 🎉");
           cart = [];
           document.getElementById('cart-count').textContent = '0';
-          document.getElementById('cart-modal').classList.add('hidden');
+          closeCart();
         }
-      }, 15000); // 15 sec wait
-    };
-
-    function filterMenu() {
-      const term = document.getElementById('search').value.toLowerCase();
-      const filtered = menu.filter(item => 
-        item.name.toLowerCase().includes(term) || item.desc.toLowerCase().includes(term)
-      );
-      renderMenu(filtered);
+      }, 12000);
     }
 
+    // Veg/Non-Veg Filter
     document.querySelectorAll('.filter-btn').forEach(btn => {
       btn.onclick = () => {
+        document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
         const filter = btn.dataset.filter;
         let filtered = menu;
         if (filter === 'veg') filtered = menu.filter(i => i.veg);
@@ -280,11 +263,8 @@
       };
     });
 
-    // Initial render with delay
-    setTimeout(() => {
-      renderMenu();
-      console.log("Menu render call complete");
-    }, 1000);
+    // Initial render
+    renderMenu();
   </script>
 </body>
 </html>
